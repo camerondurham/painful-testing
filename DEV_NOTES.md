@@ -14,3 +14,8 @@ Reference:
 1. https://opensearch.org/docs/latest/api-reference/script-apis/exec-script/
 2. https://www.elastic.co/guide/en/elasticsearch/painless/current/painless-lang-spec.html
 3. Inspiration for other CLIs based on managing ElasticSearch clusters: https://github.com/LGUG2Z/elasdx
+
+**Libraries**:
+
+1. https://github.com/fussybeaver/bollard
+2. https://docs.rs/clap/latest/clap/_derive/_cookbook/git_derive/index.html
