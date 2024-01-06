@@ -56,9 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
         } => {
             let _test_case = TestCase {
                 id: doc_id.to_str().unwrap(),
-                state: DocRef::Filepath(current_state.to_str().unwrap().to_string()),
+                state: Some(DocRef::Filepath(
+                    current_state.to_str().unwrap().to_string(),
+                )),
                 incoming: DocRef::Filepath(incoming.to_str().unwrap().to_string()),
-                expected: None,
+                expected: Some(DocRef::Filepath(expected.to_str().unwrap().to_string())),
             };
         }
     }
