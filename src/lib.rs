@@ -1,3 +1,15 @@
+pub struct TestCase<'a> {
+    pub id: &'a str ,
+    pub state: Option<DocRef>,
+    pub incoming: DocRef,
+    pub expected: Option<DocRef>,
+}
+
+pub enum DocRef {
+    Filepath(String),
+    Raw(String),
+}
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
@@ -12,3 +24,4 @@ mod tests {
         assert_eq!(result, 4);
     }
 }
+

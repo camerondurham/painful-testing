@@ -4,6 +4,7 @@ use std::ffi::OsString;
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
 use bollard::Docker;
 use clap::{Parser, Subcommand};
+use painful_testing::{DocRef, TestCase};
 
 #[derive(Subcommand, Debug)]
 enum Commands {
@@ -12,6 +13,14 @@ enum Commands {
     Start {
         #[arg(default_missing_value = "latest", default_value = "1.3.13")]
         version: Option<OsString>,
+    },
+    /// runs single test case on OpenSearch provided instance
+    #[command(arg_required_else_help = false)]
+    Test {
+        doc_id: OsString,
+        current_state: OsString,
+        incoming: OsString,
+        expected: OsString,
     },
 }
 
@@ -38,6 +47,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             )
             .await
             .expect("Unable to run Docker");
+        }
+        Commands::Test {
+            doc_id,
+            current_state,
+            incoming,
+            expected,
+        } => {
+            let _test_case = TestCase {
+                id: doc_id.to_str().unwrap(),
+                state: DocRef::Filepath(current_state.to_str().unwrap().to_string()),
+                incoming: DocRef::Filepath(incoming.to_str().unwrap().to_string()),
+                expected: None,
+            };
         }
     }
 
