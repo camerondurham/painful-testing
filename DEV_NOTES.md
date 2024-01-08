@@ -20,3 +20,14 @@ Reference:
 1. https://github.com/fussybeaver/bollard
 2. https://docs.rs/clap/latest/clap/_derive/_cookbook/git_derive/index.html
 3. https://opensearch.org/docs/latest/clients/rust/
+
+**Why?**
+
+To automate validation of painless scripts. See SO question(s) related to this.
+
+1. https://stackoverflow.com/questions/48088139/how-to-validate-elasticsearch-painless-scripts
+1. https://stackoverflow.com/questions/57362465/testing-functionality-of-painless-and-migration
+
+To catch errors like this before script hits prod:
+
+1. https://stackoverflow.com/questions/41348247/elasticsearch-painless-script-error
