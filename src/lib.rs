@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct TestCase<'a> {
     pub id: &'a str ,
     pub state: Option<DocRef>,
@@ -5,6 +6,7 @@ pub struct TestCase<'a> {
     pub expected: Option<DocRef>,
 }
 
+#[derive(Debug)]
 pub enum DocRef {
     Filepath(String),
     Raw(String),

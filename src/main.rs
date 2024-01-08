@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             incoming,
             expected,
         } => {
-            let _test_case = TestCase {
+            let test_case = TestCase {
                 id: doc_id.to_str().unwrap(),
                 state: Some(DocRef::Filepath(
                     current_state.to_str().unwrap().to_string(),
@@ -62,6 +62,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 incoming: DocRef::Filepath(incoming.to_str().unwrap().to_string()),
                 expected: Some(DocRef::Filepath(expected.to_str().unwrap().to_string())),
             };
+
+            println!("Running test case: {:?}", test_case);
         }
     }
 
