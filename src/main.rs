@@ -1,9 +1,12 @@
+use opensearch::http::Url;
+use opensearch::OpenSearch;
 use std::collections::HashMap;
 use std::ffi::OsString;
 
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
 use bollard::Docker;
 use clap::{Parser, Subcommand};
+use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use painful_testing::{DocRef, TestCase};
 
 #[derive(Subcommand, Debug)]
@@ -64,6 +67,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             };
 
             println!("Running test case: {:?}", test_case);
+
+            // TODO: implement customization of where the opensearch cluster is running
+            // Currently this just defaults to using https://localhost:9200 -ku admin:admin
+            let url = Url::parse("https://localhost:9200")?;
+            let conn_pool = SingleNodeConnectionPool::new(url.clone());
+            let transport = TransportBuilder::new(conn_pool)
+                .proxy(url, Some("admin"), Some("admin"))
+                .build()?;
+            let client = OpenSearch::new(transport);
+            let nodes = client.nodes();
+            let stats = nodes.stats(NodesStatsParts::NodeId(&["_all"]));
+            println!("{:?}", stats.pretty(true));
         }
     }
 

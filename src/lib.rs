@@ -1,6 +1,6 @@
 #[derive(Debug)]
 pub struct TestCase<'a> {
-    pub id: &'a str ,
+    pub id: &'a str,
     pub state: Option<DocRef>,
     pub incoming: DocRef,
     pub expected: Option<DocRef>,
@@ -26,4 +26,3 @@ mod tests {
         assert_eq!(result, 4);
     }
 }
-
