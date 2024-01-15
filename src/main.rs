@@ -20,10 +20,31 @@ enum Commands {
     /// runs single test case on OpenSearch provided instance
     #[command(arg_required_else_help = false)]
     Test {
+        #[arg(short, long)]
         doc_id: OsString,
+        #[arg(short, long)]
         current_state: OsString,
+        #[arg(short, long)]
         incoming: OsString,
+        #[arg(short, long)]
         expected: OsString,
+    },
+    /// initalize cluster with mapping configuration
+    #[command(arg_required_else_help = false)]
+    Init {
+        // TODO: find how to set these as defaults
+        #[arg(short, long, default_value = "https://localhost:9200", default_missing_value = "https://localhost:9200")]
+        cluster_url: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        username: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        password: OsString,
+
+
+        #[arg(short, long)]
+        mapping: OsString,
+        #[arg(short, long)]
+        index_name: OsString,
     },
 }
 
@@ -77,8 +98,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 .build()?;
             let client = OpenSearch::new(transport);
             let nodes = client.nodes();
-            let stats = nodes.stats(NodesStatsParts::NodeId(&["_all"]));
+            let stats = nodes.stats(opensearch::nodes::NodesStatsParts::NodeId(&["_all"]));
             println!("{:?}", stats.pretty(true));
+        }
+        Commands::Init {
+            mapping,
+            index_name,
+            cluster_url,
+            username,
+            password
+        } => {
+            println!(
+                "Initalizing cluster (url={:?}) with config: {:?} {:?}",
+                cluster_url, mapping, index_name
+            );
+
+            let url = Url::parse(cluster_url.to_str().unwrap())?;
+            let conn_pool = SingleNodeConnectionPool::new(url.clone());
+            let transport = TransportBuilder::new(conn_pool)
+                .proxy(url, Some(username.to_str().unwrap()), Some(password.to_str().unwrap()))
+                .build()?;
+            let client = OpenSearch::new(transport);
+                client.create(parts);
+
         }
     }
 
