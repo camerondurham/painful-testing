@@ -2,6 +2,7 @@ use opensearch::http::Url;
 use opensearch::OpenSearch;
 use std::collections::HashMap;
 use std::ffi::OsString;
+use serde_json::json;
 
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
 use bollard::Docker;
@@ -33,13 +34,17 @@ enum Commands {
     #[command(arg_required_else_help = false)]
     Init {
         // TODO: find how to set these as defaults
-        #[arg(short, long, default_value = "https://localhost:9200", default_missing_value = "https://localhost:9200")]
+        #[arg(
+            short,
+            long,
+            default_value = "https://localhost:9200",
+            default_missing_value = "https://localhost:9200"
+        )]
         cluster_url: OsString,
         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
         username: OsString,
         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
         password: OsString,
-
 
         #[arg(short, long)]
         mapping: OsString,
@@ -106,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             index_name,
             cluster_url,
             username,
-            password
+            password,
         } => {
             println!(
                 "Initalizing cluster (url={:?}) with config: {:?} {:?}",
@@ -116,11 +121,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             let url = Url::parse(cluster_url.to_str().unwrap())?;
             let conn_pool = SingleNodeConnectionPool::new(url.clone());
             let transport = TransportBuilder::new(conn_pool)
-                .proxy(url, Some(username.to_str().unwrap()), Some(password.to_str().unwrap()))
+                .proxy(
+                    url,
+                    Some(username.to_str().unwrap()),
+                    Some(password.to_str().unwrap()),
+                )
                 .build()?;
             let client = OpenSearch::new(transport);
-                client.create(parts);
 
+            // TODO: put mapping
+            // https://docs.rs/opensearch/latest/opensearch/indices/struct.Indices.html#method.put_mapping
+
+            client
+                .indices()
+                .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
+                    "idx_1",
+                ]))
+                           .body(json!({
+        "mappings" : {
+            "properties" : {
+                "field1" : { "type" : "text" }
+            }
+        }
+    }))
+                .send()
+                .await?;
         }
     }
 
