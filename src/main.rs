@@ -1,8 +1,9 @@
+use opensearch::cert::CertificateValidation;
 use opensearch::http::Url;
 use opensearch::OpenSearch;
 use std::collections::HashMap;
 use std::ffi::OsString;
-use serde_json::json;
+use std::fs;
 
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
 use bollard::Docker;
@@ -120,30 +121,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
             let url = Url::parse(cluster_url.to_str().unwrap())?;
             let conn_pool = SingleNodeConnectionPool::new(url.clone());
+
+            // for local testing, ignore certificate validation
             let transport = TransportBuilder::new(conn_pool)
-                .proxy(
-                    url,
-                    Some(username.to_str().unwrap()),
-                    Some(password.to_str().unwrap()),
-                )
+                .auth(opensearch::auth::Credentials::Basic(
+                    username.to_str().unwrap().to_string(),
+                    password.to_str().unwrap().to_string(),
+                ))
+                .cert_validation(CertificateValidation::None)
                 .build()?;
+
             let client = OpenSearch::new(transport);
 
             // TODO: put mapping
             // https://docs.rs/opensearch/latest/opensearch/indices/struct.Indices.html#method.put_mapping
 
+            let mapping_content = fs::read_to_string(mapping.to_str().unwrap())?;
+
             client
                 .indices()
                 .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
-                    "idx_1",
+                    index_name.to_str().unwrap(),
                 ]))
-                           .body(json!({
-        "mappings" : {
-            "properties" : {
-                "field1" : { "type" : "text" }
-            }
-        }
-    }))
+                .body(mapping_content)
                 .send()
                 .await?;
         }
