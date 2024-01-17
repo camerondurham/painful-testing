@@ -1,8 +1,10 @@
 use opensearch::cert::CertificateValidation;
 use opensearch::http::Url;
 use opensearch::OpenSearch;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::ffi::OsString;
+use serde_json::json;
 use std::fs;
 
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
@@ -132,20 +134,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 .build()?;
 
             let client = OpenSearch::new(transport);
+            let response = client
+                .indices()
+                .get_mapping(opensearch::indices::IndicesGetMappingParts::Index(&[
+                    index_name.to_str().unwrap(),
+                ]))
+                .send()
+                .await?;
+            println!("Response: {:?}", response);
+            if response.status_code().is_success() {
+                println!("Successfully received get mapping response: {:?}", response);
+            } else {
+                let resp = response.json::<Value>().await?;
+                println!("Failed to get mapping response: {:?}", resp);
+            }
 
             // TODO: put mapping
             // https://docs.rs/opensearch/latest/opensearch/indices/struct.Indices.html#method.put_mapping
 
             let mapping_content = fs::read_to_string(mapping.to_str().unwrap())?;
 
-            client
+            let response = client
                 .indices()
                 .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
                     index_name.to_str().unwrap(),
                 ]))
-                .body(mapping_content)
+                .body(json!(mapping_content))
                 .send()
                 .await?;
+            let successful = response.status_code().is_success();
+            if successful {
+                println!("Successfully created index");
+            } else {
+                let resp = response.json::<Value>().await?;
+                println!(
+                    "Failed to create index: {:?}",
+                    resp
+                );
+            }
         }
     }
 
