@@ -1,10 +1,10 @@
 use opensearch::cert::CertificateValidation;
 use opensearch::http::Url;
 use opensearch::OpenSearch;
+use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::ffi::OsString;
-use serde_json::json;
 use std::fs;
 
 use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
@@ -153,24 +153,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             // https://docs.rs/opensearch/latest/opensearch/indices/struct.Indices.html#method.put_mapping
 
             let mapping_content = fs::read_to_string(mapping.to_str().unwrap())?;
+            println!("mapping content: {:?}", &mapping_content);
+            let json_mapping_content: serde_json::Value =
+                serde_json::from_str(&mapping_content.as_str())?;
+            println!("json mapping content: {:?}", &json_mapping_content);
 
+            // let response = client
+            //     .indices()
+            //     .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
+            //         index_name.to_str().unwrap(),
+            //     ]))
+            //     .body(json_mapping_content.as_object().unwrap())
+            //     .send()
+            //     .await?;
             let response = client
                 .indices()
-                .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
+                .create(opensearch::indices::IndicesCreateParts::Index(
                     index_name.to_str().unwrap(),
-                ]))
-                .body(json!(mapping_content))
+                ))
+                .body(json_mapping_content.as_object().unwrap())
                 .send()
                 .await?;
+
             let successful = response.status_code().is_success();
             if successful {
                 println!("Successfully created index");
             } else {
                 let resp = response.json::<Value>().await?;
-                println!(
-                    "Failed to create index: {:?}",
-                    resp
-                );
+                println!("Failed to create index: {:?}", resp);
             }
         }
     }

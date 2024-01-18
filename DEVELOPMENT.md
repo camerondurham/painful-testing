@@ -74,3 +74,8 @@ curl https://localhost:9200 -ku 'admin:admin'
   "tagline" : "The OpenSearch Project: https://opensearch.org/"
 }
 ```
+
+```bash
+# example test
+cargo run -- init --mapping ./mapping.json --index-name idx1 --username admin --password admin
+```
