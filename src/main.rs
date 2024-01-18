@@ -1,68 +1,57 @@
+use clap::Parser;
 use opensearch::cert::CertificateValidation;
 use opensearch::http::Url;
 use opensearch::OpenSearch;
-use serde_json::json;
+use painful_testing::cli::{Cli, Commands};
+use painful_testing::docker::start_os_container;
 use serde_json::Value;
-use std::collections::HashMap;
-use std::ffi::OsString;
 use std::fs;
 
-use bollard::container::{Config, CreateContainerOptions, StartContainerOptions};
-use bollard::Docker;
-use clap::{Parser, Subcommand};
 use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use painful_testing::{DocRef, TestCase};
 
-#[derive(Subcommand, Debug)]
-enum Commands {
-    /// starts local OpenSearch instance
-    #[command(arg_required_else_help = false)]
-    Start {
-        #[arg(default_missing_value = "latest", default_value = "1.3.13")]
-        version: Option<OsString>,
-    },
-    /// runs single test case on OpenSearch provided instance
-    #[command(arg_required_else_help = false)]
-    Test {
-        #[arg(short, long)]
-        doc_id: OsString,
-        #[arg(short, long)]
-        current_state: OsString,
-        #[arg(short, long)]
-        incoming: OsString,
-        #[arg(short, long)]
-        expected: OsString,
-    },
-    /// initalize cluster with mapping configuration
-    #[command(arg_required_else_help = false)]
-    Init {
-        // TODO: find how to set these as defaults
-        #[arg(
-            short,
-            long,
-            default_value = "https://localhost:9200",
-            default_missing_value = "https://localhost:9200"
-        )]
-        cluster_url: OsString,
-        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
-        username: OsString,
-        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
-        password: OsString,
-
-        #[arg(short, long)]
-        mapping: OsString,
-        #[arg(short, long)]
-        index_name: OsString,
-    },
-}
-
-#[derive(Debug, Parser)]
-#[command(name = "pf")]
-#[command(about = "A CLI to run painless script tests on OpenSearch clusters", long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
+// #[derive(Subcommand, Debug)]
+// enum Commands {
+//     /// starts local OpenSearch instance
+//     #[command(arg_required_else_help = false)]
+//     Start {
+//         #[arg(default_missing_value = "latest", default_value = "1.3.13")]
+//         version: Option<OsString>,
+//     },
+//     /// runs single test case on OpenSearch provided instance
+//     #[command(arg_required_else_help = false)]
+//     Test {
+//         #[arg(short, long)]
+//         doc_id: OsString,
+//         #[arg(short, long)]
+//         current_state: OsString,
+//         #[arg(short, long)]
+//         incoming: OsString,
+//         #[arg(short, long)]
+//         expected: OsString,
+//     },
+//     /// initalize cluster with mapping configuration
+//     #[command(arg_required_else_help = false)]
+//     Init {
+//         // TODO: find how to set these as defaults
+//         #[arg(
+//             short,
+//             long,
+//             default_value = "https://localhost:9200",
+//             default_missing_value = "https://localhost:9200"
+//         )]
+//         cluster_url: OsString,
+//         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+//         username: OsString,
+//         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+//         password: OsString,
+//
+//         #[arg(short, long)]
+//         mapping: OsString,
+//         #[arg(short, long)]
+//         index_name: OsString,
+//     },
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
@@ -158,14 +147,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 serde_json::from_str(&mapping_content.as_str())?;
             println!("json mapping content: {:?}", &json_mapping_content);
 
-            // let response = client
-            //     .indices()
-            //     .put_mapping(opensearch::indices::IndicesPutMappingParts::Index(&[
-            //         index_name.to_str().unwrap(),
-            //     ]))
-            //     .body(json_mapping_content.as_object().unwrap())
-            //     .send()
-            //     .await?;
             let response = client
                 .indices()
                 .create(opensearch::indices::IndicesCreateParts::Index(
@@ -188,34 +169,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
     Ok(())
 }
 
-async fn start_os_container(version: &str) -> Result<(), Box<dyn std::error::Error + 'static>> {
-    let docker = Docker::connect_with_socket_defaults().unwrap();
-
-    let mut hm = HashMap::<&str, HashMap<(), ()>>::new();
-    let inner_map = HashMap::<(), ()>::new();
-    hm.insert("9100:9100", inner_map);
-    let image = format!("public.ecr.aws/opensearchproject/opensearch:{}", version);
-
-    let opensearch_config = Config {
-        // TODO: accept version / custom image name from command or config
-        image: Some(image.as_str()),
-        env: Some(vec!["discovery.type=single-node"]),
-        exposed_ports: Some(hm),
-        ..Default::default()
-    };
-
-    let _ = &docker
-        .create_container(
-            Some(CreateContainerOptions {
-                name: "opensearch",
-                platform: None,
-            }),
-            opensearch_config,
-        )
-        .await?;
-    let _ = docker
-        .start_container("opensearch", None::<StartContainerOptions<String>>)
-        .await?;
-
-    Ok(())
-}
+// async fn start_os_container(version: &str) -> Result<(), Box<dyn std::error::Error + 'static>> {
+//     let docker = Docker::connect_with_socket_defaults().unwrap();
+//
+//     let mut hm = HashMap::<&str, HashMap<(), ()>>::new();
+//     let inner_map = HashMap::<(), ()>::new();
+//     hm.insert("9100:9100", inner_map);
+//     let image = format!("public.ecr.aws/opensearchproject/opensearch:{}", version);
+//
+//     let opensearch_config = Config {
+//         // TODO: accept version / custom image name from command or config
+//         image: Some(image.as_str()),
+//         env: Some(vec!["discovery.type=single-node"]),
+//         exposed_ports: Some(hm),
+//         ..Default::default()
+//     };
+//
+//     let _ = &docker
+//         .create_container(
+//             Some(CreateContainerOptions {
+//                 name: "opensearch",
+//                 platform: None,
+//             }),
+//             opensearch_config,
+//         )
+//         .await?;
+//     let _ = docker
+//         .start_container("opensearch", None::<StartContainerOptions<String>>)
+//         .await?;
+//
+//     Ok(())
+// }

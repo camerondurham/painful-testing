@@ -12,6 +12,9 @@ pub enum DocRef {
     Raw(String),
 }
 
+pub mod cli;
+pub mod docker;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
