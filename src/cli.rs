@@ -4,12 +4,6 @@ use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// starts local OpenSearch instance
-    #[command(arg_required_else_help = false)]
-    Start {
-        #[arg(default_missing_value = "latest", default_value = "1.3.13")]
-        version: Option<OsString>,
-    },
     /// runs single test case on OpenSearch provided instance
     #[command(arg_required_else_help = false)]
     Test {

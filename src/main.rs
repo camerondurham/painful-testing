@@ -3,72 +3,18 @@ use opensearch::cert::CertificateValidation;
 use opensearch::http::Url;
 use opensearch::OpenSearch;
 use painful_testing::cli::{Cli, Commands};
-use painful_testing::docker::start_os_container;
 use serde_json::Value;
 use std::fs;
 
 use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
-use painful_testing::{DocRef, TestCase};
-
-// #[derive(Subcommand, Debug)]
-// enum Commands {
-//     /// starts local OpenSearch instance
-//     #[command(arg_required_else_help = false)]
-//     Start {
-//         #[arg(default_missing_value = "latest", default_value = "1.3.13")]
-//         version: Option<OsString>,
-//     },
-//     /// runs single test case on OpenSearch provided instance
-//     #[command(arg_required_else_help = false)]
-//     Test {
-//         #[arg(short, long)]
-//         doc_id: OsString,
-//         #[arg(short, long)]
-//         current_state: OsString,
-//         #[arg(short, long)]
-//         incoming: OsString,
-//         #[arg(short, long)]
-//         expected: OsString,
-//     },
-//     /// initalize cluster with mapping configuration
-//     #[command(arg_required_else_help = false)]
-//     Init {
-//         // TODO: find how to set these as defaults
-//         #[arg(
-//             short,
-//             long,
-//             default_value = "https://localhost:9200",
-//             default_missing_value = "https://localhost:9200"
-//         )]
-//         cluster_url: OsString,
-//         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
-//         username: OsString,
-//         #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
-//         password: OsString,
-//
-//         #[arg(short, long)]
-//         mapping: OsString,
-//         #[arg(short, long)]
-//         index_name: OsString,
-//     },
-// }
+use painful_testing::opensearch_util::get_local_client;
+use painful_testing::painless::{DocRef, TestCase};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Start { version } => {
-            start_os_container(
-                version
-                    .expect("unable to find version arg")
-                    .as_os_str()
-                    .to_str()
-                    .unwrap(),
-            )
-            .await
-            .expect("Unable to run Docker");
-        }
         Commands::Test {
             doc_id,
             current_state,
@@ -85,15 +31,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             };
 
             println!("Running test case: {:?}", test_case);
+            let client = get_local_client()?;
 
-            // TODO: implement customization of where the opensearch cluster is running
-            // Currently this just defaults to using https://localhost:9200 -ku admin:admin
-            let url = Url::parse("https://localhost:9200")?;
-            let conn_pool = SingleNodeConnectionPool::new(url.clone());
-            let transport = TransportBuilder::new(conn_pool)
-                .proxy(url, Some("admin"), Some("admin"))
-                .build()?;
-            let client = OpenSearch::new(transport);
+            // let url = Url::parse("https://localhost:9200")?;
+            // let conn_pool = SingleNodeConnectionPool::new(url.clone());
+            // let transport = TransportBuilder::new(conn_pool)
+            //     .proxy(url, Some("admin"), Some("admin"))
+            //     .build()?;
+            // let client = OpenSearch::new(transport);
             let nodes = client.nodes();
             let stats = nodes.stats(opensearch::nodes::NodesStatsParts::NodeId(&["_all"]));
             println!("{:?}", stats.pretty(true));
@@ -111,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             );
 
             let url = Url::parse(cluster_url.to_str().unwrap())?;
-            let conn_pool = SingleNodeConnectionPool::new(url.clone());
+            let conn_pool = SingleNodeConnectionPool::new(url);
 
             // for local testing, ignore certificate validation
             let transport = TransportBuilder::new(conn_pool)
@@ -168,35 +113,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     Ok(())
 }
-
-// async fn start_os_container(version: &str) -> Result<(), Box<dyn std::error::Error + 'static>> {
-//     let docker = Docker::connect_with_socket_defaults().unwrap();
-//
-//     let mut hm = HashMap::<&str, HashMap<(), ()>>::new();
-//     let inner_map = HashMap::<(), ()>::new();
-//     hm.insert("9100:9100", inner_map);
-//     let image = format!("public.ecr.aws/opensearchproject/opensearch:{}", version);
-//
-//     let opensearch_config = Config {
-//         // TODO: accept version / custom image name from command or config
-//         image: Some(image.as_str()),
-//         env: Some(vec!["discovery.type=single-node"]),
-//         exposed_ports: Some(hm),
-//         ..Default::default()
-//     };
-//
-//     let _ = &docker
-//         .create_container(
-//             Some(CreateContainerOptions {
-//                 name: "opensearch",
-//                 platform: None,
-//             }),
-//             opensearch_config,
-//         )
-//         .await?;
-//     let _ = docker
-//         .start_container("opensearch", None::<StartContainerOptions<String>>)
-//         .await?;
-//
-//     Ok(())
-// }
