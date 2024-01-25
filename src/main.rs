@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             let stats = nodes.stats(opensearch::nodes::NodesStatsParts::NodeId(&["_all"]));
             println!("{:?}", stats.pretty(true));
         }
-        Commands::Init {
+        Commands::CreateIndex {
             mapping,
             index_name,
             cluster_url,
@@ -108,6 +108,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 let resp = response.json::<Value>().await?;
                 println!("Failed to create index: {:?}", resp);
             }
+        }
+        Commands::PutScript {
+            cluster_url,
+            username,
+            password,
+            script,
+            index_name,
+        } => {
+            todo!("Put script")
         }
     }
 

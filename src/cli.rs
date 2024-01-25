@@ -18,7 +18,7 @@ pub enum Commands {
     },
     /// initalize cluster with mapping configuration
     #[command(arg_required_else_help = false)]
-    Init {
+    CreateIndex {
         // TODO: find how to set these as defaults
         #[arg(
             short,
@@ -34,6 +34,26 @@ pub enum Commands {
 
         #[arg(short, long)]
         mapping: OsString,
+        #[arg(short, long)]
+        index_name: OsString,
+    },
+    #[command(arg_required_else_help = false)]
+    PutScript {
+        // TODO: find how to set these as defaults
+        #[arg(
+            short,
+            long,
+            default_value = "https://localhost:9200",
+            default_missing_value = "https://localhost:9200"
+        )]
+        cluster_url: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        username: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        password: OsString,
+
+        #[arg(short, long)]
+        script: OsString,
         #[arg(short, long)]
         index_name: OsString,
     },
