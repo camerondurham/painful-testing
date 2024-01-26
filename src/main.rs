@@ -101,8 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 .send()
                 .await?;
 
-            let successful = response.status_code().is_success();
-            if successful {
+            if response.status_code().is_success() {
                 println!("Successfully created index");
             } else {
                 let resp = response.json::<Value>().await?;
@@ -113,10 +112,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             cluster_url,
             username,
             password,
-            script,
-            index_name,
+            script_path,
+            script_id,
         } => {
-            todo!("Put script")
+            let url = Url::parse(cluster_url.to_str().unwrap())?;
+            let conn_pool = SingleNodeConnectionPool::new(url);
+
+            let contents = fs::read_to_string(script_path.to_str().unwrap())
+                .expect("Should have read file to string");
+
+            let transport = TransportBuilder::new(conn_pool)
+                .auth(opensearch::auth::Credentials::Basic(
+                    username.to_str().unwrap().to_string(),
+                    password.to_str().unwrap().to_string(),
+                ))
+                .cert_validation(CertificateValidation::None)
+                .build()?;
+
+            let client = OpenSearch::new(transport);
+            let response = client
+                .put_script(opensearch::PutScriptParts::Id(script_id.to_str().unwrap()))
+                .body(contents)
+                .send()
+                .await?;
+            if response.status_code().is_success() {
+                println!("Successfully wrote script to cluster");
+            } else {
+                let resp = response.json::<Value>().await?;
+                println!("Failed to create index: {:?}", resp);
+            }
         }
     }
 

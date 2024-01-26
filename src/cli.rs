@@ -53,9 +53,9 @@ pub enum Commands {
         password: OsString,
 
         #[arg(short, long)]
-        script: OsString,
+        script_path: OsString,
         #[arg(short, long)]
-        index_name: OsString,
+        script_id: OsString,
     },
 }
 
