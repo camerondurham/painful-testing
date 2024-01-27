@@ -19,3 +19,22 @@ pub fn get_local_client() -> Result<OpenSearch, Box<dyn std::error::Error + 'sta
     let client = OpenSearch::new(transport);
     Ok(client)
 }
+
+pub fn get_client(
+    cluster_url: &str,
+    username: &str,
+    password: &str,
+) -> Result<OpenSearch, Box<dyn std::error::Error + 'static>> {
+    let url = Url::parse(cluster_url)?;
+    let conn_pool = SingleNodeConnectionPool::new(url);
+
+    let transport = TransportBuilder::new(conn_pool)
+        .auth(opensearch::auth::Credentials::Basic(
+            username.to_string(),
+            password.to_string(),
+        ))
+        .cert_validation(CertificateValidation::None)
+        .build()?;
+
+    Ok(OpenSearch::new(transport))
+}

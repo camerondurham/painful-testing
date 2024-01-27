@@ -4,18 +4,6 @@ use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// runs single test case on OpenSearch provided instance
-    #[command(arg_required_else_help = false)]
-    Test {
-        #[arg(short, long)]
-        doc_id: OsString,
-        #[arg(short, long)]
-        current_state: OsString,
-        #[arg(short, long)]
-        incoming: OsString,
-        #[arg(short, long)]
-        expected: OsString,
-    },
     /// initalize cluster with mapping configuration
     #[command(arg_required_else_help = false)]
     CreateIndex {
@@ -56,6 +44,25 @@ pub enum Commands {
         script_path: OsString,
         #[arg(short, long)]
         script_id: OsString,
+    },
+    #[command(arg_required_else_help = false)]
+    IndexDocument {
+        // TODO: find how to set these as defaults
+        #[arg(
+            short,
+            long,
+            default_value = "https://localhost:9200",
+            default_missing_value = "https://localhost:9200"
+        )]
+        cluster_url: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        username: OsString,
+        #[arg(short, long, default_value = "admin", default_missing_value = "admin")]
+        password: OsString,
+        #[arg(short, long)]
+        index_name: OsString,
+        #[arg(short, long)]
+        doc_path: OsString,
     },
 }
 

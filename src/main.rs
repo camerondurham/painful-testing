@@ -7,7 +7,7 @@ use serde_json::Value;
 use std::fs;
 
 use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
-use painful_testing::opensearch_util::get_local_client;
+use painful_testing::opensearch_util::{get_client, get_local_client};
 use painful_testing::painless::{DocRef, TestCase};
 
 #[tokio::main]
@@ -15,34 +15,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Test {
-            doc_id,
-            current_state,
-            incoming,
-            expected,
-        } => {
-            let test_case = TestCase {
-                id: doc_id.to_str().unwrap(),
-                state: Some(DocRef::Filepath(
-                    current_state.to_str().unwrap().to_string(),
-                )),
-                incoming: DocRef::Filepath(incoming.to_str().unwrap().to_string()),
-                expected: Some(DocRef::Filepath(expected.to_str().unwrap().to_string())),
-            };
-
-            println!("Running test case: {:?}", test_case);
-            let client = get_local_client()?;
-
-            // let url = Url::parse("https://localhost:9200")?;
-            // let conn_pool = SingleNodeConnectionPool::new(url.clone());
-            // let transport = TransportBuilder::new(conn_pool)
-            //     .proxy(url, Some("admin"), Some("admin"))
-            //     .build()?;
-            // let client = OpenSearch::new(transport);
-            let nodes = client.nodes();
-            let stats = nodes.stats(opensearch::nodes::NodesStatsParts::NodeId(&["_all"]));
-            println!("{:?}", stats.pretty(true));
-        }
         Commands::CreateIndex {
             mapping,
             index_name,
@@ -115,11 +87,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
             script_path,
             script_id,
         } => {
-            let url = Url::parse(cluster_url.to_str().unwrap())?;
-            let conn_pool = SingleNodeConnectionPool::new(url);
-
             let contents = fs::read_to_string(script_path.to_str().unwrap())
                 .expect("Should have read file to string");
+
+            let url = Url::parse(cluster_url.to_str().unwrap())?;
+            let conn_pool = SingleNodeConnectionPool::new(url);
 
             let transport = TransportBuilder::new(conn_pool)
                 .auth(opensearch::auth::Credentials::Basic(
@@ -141,6 +113,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
                 let resp = response.json::<Value>().await?;
                 println!("Failed to create index: {:?}", resp);
             }
+        }
+        Commands::IndexDocument {
+            cluster_url,
+            username,
+            password,
+            index_name,
+            doc_path,
+        } => {
+            println!("writing doc {:?} to {:?} index", doc_path, index_name);
+            let client = get_client(
+                cluster_url.to_str().unwrap(),
+                username.to_str().unwrap(),
+                password.to_str().unwrap(),
+            )
+            .expect("unable to create OpenSearch client");
         }
     }
 
